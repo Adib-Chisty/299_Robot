@@ -191,7 +191,7 @@ void loop() {
 
 void goToCoord(Robot R,int x, int y, int d){ //x,y is destination coord, d is the cardinality of the ball
   if (cy<y){ //if current y coordinate is less than the objective y then move forward until cy = y
-    forward(robot,y-cy);
+    forward(R,y-cy);
     cy = y;
     Serial.println("Reached Y component");
   }
@@ -200,36 +200,36 @@ void goToCoord(Robot R,int x, int y, int d){ //x,y is destination coord, d is th
 
     if(cx<x){
       Serial.println("Turning Right");
-      turn(robot,0);
-      forward(robot,x-cx);
+      turn(R,0);
+      forward(R,x-cx);
       cx = x;
     }
     else if(cx>x){
       Serial.println("Turning Left");
-      turn(robot,1);
-      forward(robot,cx-x);
+      turn(R,1);
+      forward(R,cx-x);
       cx = x;
     }
   }
   if(cd!=d){ //if the robot is not facing the ball, then turn towards the ball
     if(abs(cd-d) == 2){ //ball is 180deg behind robot, turn 90deg twice [Cases: Many]
-      turn(robot,1);
-      turn(robot,1);
+      turn(R,1);
+      turn(R,1);
     }
     else if(cd-d ==-3){ //ball is -90deg to robot, turn -90deg(Left) once [Case: facing 0, ball at 3]
-      turn (robot,1);
+      turn (R,1);
     }
     else if(cd-d ==3){  //ball is 90deg to robot, turn 90deg(Right) once  [Case: facing 3, ball at 0]
-      turn (robot,0);
+      turn (R,0);
     }
     //if didnt catch above cases, adjust direction
     else if(cd-d>0)  //ball is -90deg to robot, turn -90deg(Left)   [Cases: Many]
     {
-      turn(robot,1);
+      turn(R,1);
     }
     else if(cd-d<0) //ball is 90deg to robot, turn 90deg(Right)     [Cases: Many]
     {
-      turn(robot,0);
+      turn(R,0);
     }
   }
 
@@ -246,7 +246,7 @@ void forward(Robot R, int numOfIntersections){
     mVal = analogRead(M_IR);
     rVal = analogRead(R_IR);
 
-    correctCourse(robot); //correct leaning
+    correctCourse(R); //correct leaning
 
     //correctly detect intersections, prevents accidental detection of false intersection
     if((lVal > thresh) && (mVal > thresh) && (rVal > thresh) && (plVal > thresh) && (pmVal > thresh) && (prVal > thresh)){ //At an intersection. Increment intersection counter
@@ -263,7 +263,7 @@ void forward(Robot R, int numOfIntersections){
     pmVal = mVal;
     prVal = rVal;
   }
-  stop(robot);
+  stop(R);
 }
 
 
@@ -300,9 +300,9 @@ void turn(Robot R, int dir){
     delay(200);
   }
 
-  mVal = analogRead(cIRPin);
+  mVal = analogRead(M_IR);
   while(mVal<thresh){ //Rotate in specified direction until the middle line sensor reads the black tape value
-    mVal = analogRead(cIRPin);
+    mVal = analogRead(M_IR);
     analogWrite(L_Speed, R.L_SlowMotorSpeed);
     analogWrite(R_Speed, R.R_SlowMotorSpeed);
     if(dir = 1){
@@ -326,7 +326,7 @@ void turn(Robot R, int dir){
     cd = (cd+1)%4; //Update direction robot is facing
   }
 
-  stop(robot);
+  stop(R);
 }
 
 
