@@ -4,6 +4,8 @@
 /*Program describing behaviour of warehouse robot prototype
  * Created by Adib Chisty on March 20, 2019
  * Inspired by Husnain Haider's Coordinate System
+ * Expanded with Raed Fayad's CLass
+ * Modularity added
  * For ELEC299
  */
 
@@ -19,7 +21,7 @@ int R_Dir= 7;       //M1
 int R_Speed = 6;    //E1
 int L_Speed = 5;    //E2
 int L_Dir = 4;      //M2
-  
+
 //IR SENSOR BOTTOM
 int R_IR = A5;
 int M_IR = A4;
@@ -60,12 +62,12 @@ int cd = 0; //direction 0 = 'NORTH' 1,2,3 = E,S,W
 //integers to hold IR sensor analog values
 //bottom facing
 int lVal = 0;
-int cVal = 0;
+int mVal = 0;
 int rVal = 0;
 
 //previous value holders
 int plVal = 0;
-int pcVal = 0;
+int pmVal = 0;
 int prVal = 0;
 
 //front facing
@@ -80,11 +82,13 @@ int lastInter = 0;
 int thresh = 750;
 //===========================
 
-//========CLASSES============ //No need for using a class, move thresholds into definition area
-class Robot { 
+//========CLASSES============ //
+class Robot {
   public:
-    int R_MotorSpeed = 250;
-    int L_MotorSpeed = 250;
+    int R_FastMotorSpeed = 250;
+    int L_FastMotorSpeed = 250;
+    int R_MedMotorSpeed = 150;
+    int L_MedMotorSpeed = 150;
     int R_SlowMotorSpeed = 100;
     int L_SlowMotorSpeed = 100;
 
@@ -136,6 +140,7 @@ void setup() {
 
   int robotId = 1; //or 2 or 3. This number should be a return value from the detectBeacon Function
 
+  //PINMODE SETUPS
   pinMode(R_Dir, OUTPUT);
   pinMode(L_Dir, OUTPUT);
   pinMode(R_Speed , OUTPUT);
@@ -149,10 +154,10 @@ void setup() {
   grip.attach(grip_PIN);
   pinMode(pressure_PIN, INPUT);
 
-  pinMode(F_IR,INPUT);
-  pinMode(L_IR,INPUT);
-  pinMode(M_IR,INPUT);
-  pinMode(R_IR,INPUT);
+  pinMode(F_IR, INPUT);
+  pinMode(L_IR, INPUT);
+  pinMode(M_IR, INPUT);
+  pinMode(R_IR, INPUT);
 
   pinMode(start_PIN, INPUT);
 
@@ -184,29 +189,165 @@ void loop() {
 
 //=====MOVEMENT FUNCTIONS====
 
-void goToCoord(Robot R,int x, int y, int d){
-  //TO DO
+void goToCoord(Robot R,int x, int y, int d){ //x,y is destination coord, d is the cardinality of the ball
+  if (cy<y){ //if current y coordinate is less than the objective y then move forward until cy = y
+    forward(robot,y-cy);
+    cy = y;
+    Serial.println("Reached Y component");
+  }
+
+  if(cx!=x){ //if current x coordinate is less than the objective x, turn, then move forward until cx = x
+
+    if(cx<x){
+      Serial.println("Turning Right");
+      turn(robot,0);
+      forward(robot,x-cx);
+      cx = x;
+    }
+    else if(cx>x){
+      Serial.println("Turning Left");
+      turn(robot,1);
+      forward(robot,cx-x);
+      cx = x;
+    }
+  }
+  if(cd!=d){ //if the robot is not facing the ball, then turn towards the ball
+      if(abs(cd-d) == 2){ //ball is 180deg behind robot, turn 90deg twice [Cases: Many]
+        turn(robot,1);
+        turn(robot,1);
+      }
+      else if(cd-d ==-3){ //ball is -90deg to robot, turn -90deg(Left) once [Case: facing 0, ball at 3]
+        turn (robot,1);
+      }
+      else if(cd-d ==3){  //ball is 90deg to robot, turn 90deg(Right) once  [Case: facing 3, ball at 0]
+        turn (robot,0);
+      }
+      //if didnt catch above cases, adjust direction
+      else if(cd-d>0)  //ball is -90deg to robot, turn -90deg(Left)   [Cases: Many]
+      {
+        turn(robot,1);
+      }
+      else if(cd-d<0) //ball is 90deg to robot, turn 90deg(Right)     [Cases: Many]
+      {
+        turn(robot,0);
+      }
+    }
+
 }
 
 void forward(Robot R, int numOfIntersections){
-  //TO DO
+  int intersectionCount = 0;
+  digitalWrite(L_Dir, HIGH); //Set left motor direction to forward
+  digitalWrite(R_Dir, HIGH); //Set right motor direction to forward
+
+  //While not at the desired intersection, keep moving forward
+ while(intersectionCount < numOfIntersections){
+   lVal = analogRead(L_IR);
+   mVal = analogRead(M_IR);
+   rVal = analogRead(R_IR);
+
+   correctCourse(robot); //correct leaning
+
+  //correctly detect intersections, prevents accidental detection of false intersection
+   if((lVal > thresh) && (mVal > thresh) && (rVal > thresh) && (plVal > thresh) && (pmVal > thresh) && (prVal > thresh)){ //At an intersection. Increment intersection counter
+     if((millis()-lastInter)>200){
+       Serial.println("INTERSECTION DETECTED");
+
+       intersectionCount++;
+       Serial.println(intersectionCount);
+       lastInter = millis();
+
+     }
+   }
+    plVal = lVal;
+    pmVal = mVal;
+    prVal = rVal;
+ }
+ stop(robot);
 }
+
 
 void backward(Robot R){ //kinda redundant because no sensors on the back, will REMOVE
   //TO DO
 }
 
-void turn(Robot R, int dir){
-  //TO DO
+void stop(Robot R){
+  analogWrite(L_Speed, 0);
+  analogWrite(R_Speed, 0);
 }
 
-void approach(Robot R){
+void turn(Robot R, int dir){
+  //drive a little past the intersection
+ delay(50);
+ analogWrite(L_Speed, R.L_SlowMotorSpeed);
+ analogWrite(R_Speed, R.R_SlowMotorSpeed);
+ digitalWrite(L_Dir, HIGH);
+ digitalWrite(R_Dir, HIGH);
+ delay(700);
+
+ if(dir == 1){//Begin turning counter-clockwise to ensure that center line sensor is not scaning the black tape
+     analogWrite(L_Speed, R.L_SlowMotorSpeed);
+     analogWrite(R_Speed, R.R_SlowMotorSpeed);
+     digitalWrite(L_Dir, LOW);
+     digitalWrite(R_Dir, HIGH);
+     delay(200);
+  }
+  else{//Begin turning clockwise to ensure that center line sensor is not scaning the black tape
+    analogWrite(L_Speed, R.L_SlowMotorSpeed);
+     analogWrite(R_Speed, R.R_SlowMotorSpeed);
+     digitalWrite(L_Dir, HIGH);
+     digitalWrite(R_Dir, LOW);
+     delay(200);
+  }
+
+ mVal = analogRead(cIRPin);
+ while(mVal<thresh){ //Rotate in specified direction until the middle line sensor reads the black tape value
+   mVal = analogRead(cIRPin);
+   analogWrite(L_Speed, R.L_SlowMotorSpeed);
+   analogWrite(R_Speed, R.R_SlowMotorSpeed);
+   if(dir = 1){
+     digitalWrite(L_Dir, LOW);
+     digitalWrite(R_Dir, HIGH);
+   }else{
+     digitalWrite(L_Dir, HIGH);
+     digitalWrite(R_Dir, LOW);
+   }
+ }
+
+ //Update current direction of the robot
+ if(dir == 1){
+     if(cd ==0){ //Update direction robot is facing
+      cd =3;
+     }else{
+      cd =cd-1;
+     }
+  }
+  else{
+     cd = (cd+1)%4; //Update direction robot is facing
+  }
+
+    stop(robot);
+}
+
+
+void approachWall(Robot R){
   //TO DO
 }
 
 void correctCourse(Robot R){
-  //TO DO
+  if((lVal < thresh) && (mVal > thresh) && (rVal < thresh)){ //SET MOTORS TO DRIVE FORWARD
+      analogWrite(L_Speed, R.L_MedMotorSpeed);
+      analogWrite(R_Speed, R.R_MedMotorSpeed);
+    }else if((lVal > thresh) && (mVal < thresh) && (rVal < thresh)){//LEANING INTO THE RIGHT...SPEED UP RIGHT MOTOR (CALIBRATE)
+      analogWrite(L_Speed, R.L_SlowMotorSpeed);
+      analogWrite(R_Speed, R.R_MedMotorSpeed);
+    }else if((lVal < thresh) && (mVal < thresh) && (rVal > thresh)){//LEANING INTO THE LEFT...SPEED UP RIGHT MOTOR (CALIBRATE)
+      analogWrite(L_Speed, R.L_MedMotorSpeed);
+      analogWrite(R_Speed, R.L_SlowMotorSpeed);
+    }
 }
+
+
 
 //===========================
 
