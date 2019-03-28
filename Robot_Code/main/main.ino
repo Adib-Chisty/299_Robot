@@ -230,21 +230,15 @@ void loop() {
     forward(robot, 2);
     turn(robot, 0, true);
   */
-
-  /*
     cx = 1;
     cy = -1;
     goToCoord(robot, 4, 4, 1);
     approachWall(robot);
     grab(robot);
-    //turn(robot, 1, true);
     RTB(robot, 1);
     approachWall(robot);
     drop(robot);
     exit(0);
-  */
-  grab(robot);
-  exit(0);
 }
 
 
@@ -549,8 +543,9 @@ void grab(Robot R) {
   //TO DO
 
   //To grab position
-  tilt.write(70);
+  tilt.write(60);
   pan.write(90);
+  grip.write(0);
   delay(2000);
 
   //grab it forreal
@@ -574,16 +569,16 @@ void grab(Robot R) {
   delay(700);
 
   //do 180
-  turn(R, 0, false);
+  turn(R, 0, true);
   //drive upto intersection
-  forward(R, 1);
+//  forward(R, 1);
   //move up a lil
-  delay(50);
-  analogWrite(L_Speed, 130);
-  analogWrite(R_Speed, 105);
-  digitalWrite(L_Dir, HIGH);
-  digitalWrite(R_Dir, HIGH);
-  delay(400);
+//  delay(50);
+//  analogWrite(L_Speed, 130);
+//  analogWrite(R_Speed, 105);
+//  digitalWrite(L_Dir, HIGH);
+//  digitalWrite(R_Dir, HIGH);
+//  delay(400);
 
   //stahp
   stop(R);
