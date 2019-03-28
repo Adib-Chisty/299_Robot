@@ -85,8 +85,8 @@ class Robot {
   public:
     int R_FastMotorSpeed = 144;
     int L_FastMotorSpeed = 136;
-    int R_MedMotorSpeed = 124;
-    int L_MedMotorSpeed = 116;
+    int R_MedMotorSpeed = 100;
+    int L_MedMotorSpeed = 110;
     int R_SlowMotorSpeed = 94;
     int L_SlowMotorSpeed = 86;
 
@@ -191,23 +191,24 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  /* //snake n back
+  /*
+    //snake n back
     forward(robot, 1);
-    turn(robot, 1);
+    turn(robot, 1,false);
     forward(robot, 2);
-    turn(robot, 0);
+    turn(robot, 0,false);
     forward(robot, 1);
-    turn(robot, 0);
+    turn(robot, 0,false);
     forward(robot, 2);
-    turn(robot, 1);
+    turn(robot, 1,false);
     forward(robot, 1);
-    turn(robot, 1);
+    turn(robot, 1,false);
     forward(robot, 2);
-    turn(robot, 0);
+    turn(robot, 0,false);
     forward(robot, 1);
-    turn(robot,  0);
+    turn(robot,  0,false);
     forward(robot, 2);
-    turn(robot,  0);
+    turn(robot,  0,false);
     forward(robot,4);
     exit(0);
   */
@@ -222,11 +223,30 @@ void loop() {
     forward(robot, 2);
     turn(robot, 1);
   */
-  Serial.println("Robot Current Direction");
-  Serial.println(cd);
-  forward(robot, 2);
-  turn(robot, 0, true);
+
+  /* 180 tester
+    Serial.println("Robot Current Direction");
+    Serial.println(cd);
+    forward(robot, 2);
+    turn(robot, 0, true);
+  */
+
+  /*
+    cx = 1;
+    cy = -1;
+    goToCoord(robot, 4, 4, 1);
+    approachWall(robot);
+    grab(robot);
+    //turn(robot, 1, true);
+    RTB(robot, 1);
+    approachWall(robot);
+    drop(robot);
+    exit(0);
+  */
+  grab(robot);
+  exit(0);
 }
+
 
 //=====MOVEMENT FUNCTIONS====
 
@@ -274,6 +294,29 @@ void goToCoord(Robot R, int x, int y, int d) { //x,y is destination coord, d is 
     }
   }
 
+}
+
+void RTB(Robot R, int homeX) {
+  int y = 0;
+  int x = homeX;
+
+  if (cx != x) {
+    if (cx < x) {
+      forward(R, (x - cx));
+      cx = x;
+      turn(R, 0, false); //turn right
+    }
+    else if (cx > x) {
+      forward(R, (cx - x));
+      cx = x;
+      turn(R, 1, false); //turn left
+    }
+
+  }
+  if (cy != y) {
+    forward(R, (cy - y));
+    cy = y;
+  }
 }
 
 void forward(Robot R, int numOfIntersections) {
@@ -345,7 +388,6 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
       digitalWrite(L_Dir, LOW);
       digitalWrite(R_Dir, HIGH);
       delay(500);
-
     }
     else { //Begin turning clockwise to ensure that center line sensor is not scaning the black tape
       //Serial.println("Pre turning right");
@@ -353,7 +395,7 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
       analogWrite(R_Speed, 120);
       digitalWrite(L_Dir, HIGH);
       digitalWrite(R_Dir, LOW);
-      delay(480);
+      delay(480); //<-- PRE TURN RIGHT DELAY
 
     }
 
@@ -375,6 +417,8 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
       //Serial.println(Val);
       analogWrite(L_Speed, 114);
       analogWrite(R_Speed, 110);
+
+
       if (dir == 1) {
         //Serial.println("Turning Left");
         digitalWrite(L_Dir, LOW);
@@ -430,22 +474,64 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
 }
 
 
-void approachWall(Robot R) {
-  //TO DO
+void approachWall(Robot r) {
+
+  digitalWrite(L_Dir, HIGH);
+  digitalWrite(R_Dir, HIGH);
+  int lbump = digitalRead(L_Bumper);
+  int rbump = digitalRead(R_Bumper);
+  r.L_MedMotorSpeed = r.L_MedMotorSpeed - 50;
+  r.R_MedMotorSpeed = r.R_MedMotorSpeed - 50;
+
+  correctCourse(r);
+
+  while (!(lbump == LOW || rbump == LOW)) {
+
+    digitalWrite(L_Dir, HIGH);
+    digitalWrite(R_Dir, HIGH);
+    lbump = digitalRead(L_Bumper);
+    rbump = digitalRead(R_Bumper);
+    correctCourse(r);
+  }
+  r.L_MedMotorSpeed = r.L_MedMotorSpeed + 50;
+  r.R_MedMotorSpeed = r.R_MedMotorSpeed + 50;
+  digitalWrite(L_Dir, LOW);
+  digitalWrite(R_Dir, LOW);
+  analogWrite(L_Speed, r.L_MedMotorSpeed - 35);
+  analogWrite(R_Speed, r.R_MedMotorSpeed - 30);
+  delay(390);
+  analogWrite(L_Speed, 0);
+  analogWrite(R_Speed, 0);
+
 }
 
 void correctCourse(Robot R) {
+  lVal = analogRead(L_IR);
+  mVal = analogRead(M_IR);
+  rVal = analogRead(R_IR);
+
   if ((lVal < thresh) && (mVal > thresh) && (rVal < thresh)) { //SET MOTORS TO DRIVE FORWARD
     //Serial.println("Driving Forward");
     analogWrite(L_Speed, 110);
     analogWrite(R_Speed, 100);
+
   } else if ((lVal > thresh) && (mVal < thresh) && (rVal < thresh)) { //LEANING INTO THE RIGHT...SPEED UP RIGHT MOTOR (CALIBRATE)
     //Serial.println("Leaning right, pulling left");
+    //    analogWrite(L_Speed, 100);
+    //    analogWrite(R_Speed, 120);
     analogWrite(L_Speed, 100);
-    analogWrite(R_Speed, 120);
+    analogWrite(R_Speed, 130);
   } else if ((lVal < thresh) && (mVal < thresh) && (rVal > thresh)) { //LEANING INTO THE LEFT...SPEED UP RIGHT MOTOR (CALIBRATE)
     //Serial.println("Leaning left, pulling right");
-    analogWrite(L_Speed, 130);
+    //    analogWrite(L_Speed, 130);
+    //    analogWrite(R_Speed, 100);
+    analogWrite(L_Speed, 140);
+    analogWrite(R_Speed, 100);
+  }
+  else {
+    //SET MOTORS TO DRIVE FORWARD
+    //Serial.println("Driving Forward");
+    analogWrite(L_Speed, 110);
     analogWrite(R_Speed, 100);
   }
 }
@@ -461,17 +547,64 @@ void correctCourse(Robot R) {
 //moves tilt into a vertical position
 void grab(Robot R) {
   //TO DO
-  tilt.write(R.Ball_Pick_Up_Angle);//Find int for proper angle for pick up
-  grip.write(50);
-  for (int gripperDistance = 50; analogRead(pressure_PIN) > R.Gripper_Pressure_Threshold; gripperDistance += 2) {
-    grip.write(gripperDistance);
+
+  //To grab position
+  tilt.write(70);
+  pan.write(90);
+  delay(2000);
+
+  //grab it forreal
+  int fullyOpen = 0;
+  while (analogRead(pressure_PIN) < 200) {
+    grip.write(fullyOpen);
+    fullyOpen += 1;
+    delay(100);
   }
+
+  //put ball back up
   tilt.write(160);
+  delay(2000);
+
+  //back up
+  delay(50);
+  analogWrite(L_Speed, 130);
+  analogWrite(R_Speed, 105);
+  digitalWrite(L_Dir, LOW);
+  digitalWrite(R_Dir, LOW);
+  delay(700);
+
+  //do 180
+  turn(R, 0, false);
+  //drive upto intersection
+  forward(R, 1);
+  //move up a lil
+  delay(50);
+  analogWrite(L_Speed, 130);
+  analogWrite(R_Speed, 105);
+  digitalWrite(L_Dir, HIGH);
+  digitalWrite(R_Dir, HIGH);
+  delay(400);
+
+  //stahp
+  stop(R);
 }
 
-void drop(Robot R) {
-  //TO DO
-  tilt.write(R.Ball_Drop_Off_Angle);
+void drop(Robot r) {
+  //TO DO                    //Call this after drop function after calling approachWall, This will move it forward until it hits the wall
+  digitalWrite(L_Dir, HIGH);
+  digitalWrite(R_Dir, HIGH);
+  int lbump = digitalRead(L_Bumper);
+  int rbump = digitalRead(R_Bumper);
+  analogWrite(L_Speed, r.L_MedMotorSpeed - 35);
+  analogWrite(R_Speed, r.R_MedMotorSpeed - 30);
+  while (!(lbump == LOW || rbump == LOW)) {
+    lbump = digitalRead(L_Bumper);
+    rbump = digitalRead(R_Bumper);
+  }
+  stop(r);
+
+  // vvv Actual code for dropping ball.
+  tilt.write(r.Ball_Drop_Off_Angle);
   grip.write(40);
   tilt.write(160);
 }
