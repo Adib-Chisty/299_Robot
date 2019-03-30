@@ -302,6 +302,23 @@ void goToCoord(Robot R, int x, int y, int d) { //x,y is destination coord, d is 
     }
   }
 
+  if (cx != x) {
+    if (cx < x) {
+      forward(R, (x - cx));
+      cx = x;
+      turn(R, 0, false); //turn right
+    }
+    else if (cx > x) {
+      forward(R, (cx - x));
+      cx = x;
+      turn(R, 1, false); //turn left
+    }
+
+  }
+  if (cy != y) {
+    forward(R, (cy - y));
+    cy = y;
+  }
 }
 
 void RTB(Robot R, int home_) {
