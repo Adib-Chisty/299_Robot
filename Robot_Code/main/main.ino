@@ -56,6 +56,9 @@ int cy = 0;
 int cx = 0;
 int cd = 0; //direction 0 = 'NORTH' 1,2,3 = E,S,W
 
+int homeX = 0;
+int homeY = 0;
+
 //integers to hold IR sensor analog values
 //bottom facing
 int lVal = 0;
@@ -213,16 +216,11 @@ void loop() {
     exit(0);
   */
 
-  /* //circuit
-    forward(robot, 4);
-    turn(robot, 1);
-    forward(robot, 2);
-    turn(robot, 1);
-    forward(robot, 4);
-    turn(robot, 1);
-    forward(robot, 2);
-    turn(robot, 1);
-  */
+  //circuit
+  //    forward(robot, 2);
+  //    turn(robot, 1,false);
+
+
 
   /* 180 tester
     Serial.println("Robot Current Direction");
@@ -230,15 +228,24 @@ void loop() {
     forward(robot, 2);
     turn(robot, 0, true);
   */
-    cx = 1;
-    cy = -1;
-    goToCoord(robot, 4, 4, 1);
-    approachWall(robot);
-    grab(robot);
-    RTB(robot, 1);
-    approachWall(robot);
-    drop(robot);
-    exit(0);
+  cx = 1;
+  cy = -1;
+  homeX = 1;
+  homeY = -1;
+  goToCoord(robot, 4, 4, 1);
+  approachWall(robot, false);
+  grab(robot);
+  RTB(robot, 1);
+  approachWall(robot, true);
+  drop(robot);
+  goToCoord(robot, 2, 4, 0);
+  approachWall(robot, false);
+  grab(robot);
+  RTB(robot, 1);
+  approachWall(robot, true);
+  drop(robot);
+
+  exit(0);
 }
 
 
@@ -290,9 +297,19 @@ void goToCoord(Robot R, int x, int y, int d) { //x,y is destination coord, d is 
 
 }
 
-void RTB(Robot R, int homeX) {
+void RTB(Robot R, int home_) {
   int y = 0;
-  int x = homeX;
+  int x = home_;
+
+  if (cd == 2) {
+    if (cx < x) {
+      turn(R, 1, false);
+    } else if (cx > x) {
+      turn(R, 0, false);
+    } else {
+      //do nothing
+    }
+  }
 
   if (cx != x) {
     if (cx < x) {
@@ -381,7 +398,8 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
       analogWrite(R_Speed, 105);
       digitalWrite(L_Dir, LOW);
       digitalWrite(R_Dir, HIGH);
-      delay(500);
+      delay(650);
+      //      delay(500);
     }
     else { //Begin turning clockwise to ensure that center line sensor is not scaning the black tape
       //Serial.println("Pre turning right");
@@ -409,8 +427,8 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
 
       //Serial.println("Middle IR:");
       //Serial.println(Val);
-      analogWrite(L_Speed, 114);
-      analogWrite(R_Speed, 110);
+      analogWrite(L_Speed, 120);
+      analogWrite(R_Speed, 130);
 
 
       if (dir == 1) {
@@ -468,7 +486,7 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
 }
 
 
-void approachWall(Robot r) {
+void approachWall(Robot r, bool base) {
 
   digitalWrite(L_Dir, HIGH);
   digitalWrite(R_Dir, HIGH);
@@ -489,13 +507,15 @@ void approachWall(Robot r) {
   }
   r.L_MedMotorSpeed = r.L_MedMotorSpeed + 50;
   r.R_MedMotorSpeed = r.R_MedMotorSpeed + 50;
-  digitalWrite(L_Dir, LOW);
-  digitalWrite(R_Dir, LOW);
-  analogWrite(L_Speed, r.L_MedMotorSpeed - 35);
-  analogWrite(R_Speed, r.R_MedMotorSpeed - 30);
-  delay(390);
-  analogWrite(L_Speed, 0);
-  analogWrite(R_Speed, 0);
+
+  if (!base) {
+    digitalWrite(L_Dir, LOW);
+    digitalWrite(R_Dir, LOW);
+    analogWrite(L_Speed, r.L_MedMotorSpeed - 35);
+    analogWrite(R_Speed, r.R_MedMotorSpeed - 30);
+    delay(1000); //blazeit
+  }
+  stop(r);
 
 }
 
@@ -543,65 +563,76 @@ void grab(Robot R) {
   //TO DO
 
   //To grab position
-  tilt.write(60);
   pan.write(90);
   grip.write(0);
-  delay(2000);
+  delay(500);
+
+  int tiltVal = 160;
+  while (tiltVal >= 65) {
+    tilt.write(tiltVal);
+    tiltVal -= 1;
+    delay(25);
+  }
 
   //grab it forreal
   int fullyOpen = 0;
   while (analogRead(pressure_PIN) < 200) {
     grip.write(fullyOpen);
     fullyOpen += 1;
-    delay(100);
+    delay(25);
   }
-
   //put ball back up
-  tilt.write(160);
-  delay(2000);
+  tilt.write(180);
+  delay(1000);
 
   //back up
   delay(50);
-  analogWrite(L_Speed, 130);
-  analogWrite(R_Speed, 105);
+  analogWrite(L_Speed, 110);
+  analogWrite(R_Speed, 120);
   digitalWrite(L_Dir, LOW);
   digitalWrite(R_Dir, LOW);
-  delay(700);
+  delay(800);
 
   //do 180
   turn(R, 0, true);
-  //drive upto intersection
-//  forward(R, 1);
-  //move up a lil
-//  delay(50);
-//  analogWrite(L_Speed, 130);
-//  analogWrite(R_Speed, 105);
-//  digitalWrite(L_Dir, HIGH);
-//  digitalWrite(R_Dir, HIGH);
-//  delay(400);
-
+ 
   //stahp
   stop(R);
 }
 
-void drop(Robot r) {
-  //TO DO                    //Call this after drop function after calling approachWall, This will move it forward until it hits the wall
-  digitalWrite(L_Dir, HIGH);
-  digitalWrite(R_Dir, HIGH);
-  int lbump = digitalRead(L_Bumper);
-  int rbump = digitalRead(R_Bumper);
-  analogWrite(L_Speed, r.L_MedMotorSpeed - 35);
-  analogWrite(R_Speed, r.R_MedMotorSpeed - 30);
-  while (!(lbump == LOW || rbump == LOW)) {
-    lbump = digitalRead(L_Bumper);
-    rbump = digitalRead(R_Bumper);
-  }
-  stop(r);
+void drop(Robot R) {
+  //Call this after drop function after calling approachWall, This will move it forward until it hits the wall
 
-  // vvv Actual code for dropping ball.
-  tilt.write(r.Ball_Drop_Off_Angle);
-  grip.write(40);
-  tilt.write(160);
+  int tiltValue = 180;
+  while (tiltValue >= 90) {
+    tilt.write(tiltValue);
+    if (tiltValue == 95) {
+      grip.write(0);
+    }
+    tiltValue -= 1;
+  }
+
+  //backup
+  delay(50);
+  analogWrite(L_Speed, 110);
+  analogWrite(R_Speed, 120);
+  digitalWrite(L_Dir, LOW);
+  digitalWrite(R_Dir, LOW);
+  delay(800);
+
+  //turn
+  turn(R, 0, false);
+
+  // realign servo
+  tilt.write(180);
+  grip.write(100);
+  delay(1000);
+
+  stop(R);
+
+  cd = 0;
+  cx = homeX;
+  cy = homeY;
 }
 
 //===========================
