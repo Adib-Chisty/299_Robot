@@ -175,17 +175,17 @@ void setup() {
   */
 
   pinMode(start_PIN, INPUT);
-  IRSerial.attach(start_PIN, -1)
+  IRSerial.attach(start_PIN, -1);
 
   //Starting Sequence vvvvvvv
-  int robotId = 1; //or 2 or 3. This number should be a return value from the detectBeacon Function
+  int roboId = 1; //or 2 or 3. This number should be a return value from the detectBeacon Function
 
 
   int val = digitalRead(start_PIN);
   while (val == HIGH) {
     val = digitalRead(start_PIN);
     roboId = IRSerial.receive(200);
-    if (val == LOW  && validateIRIn(roboId) {
+    if (val == LOW  && validateIRIn(roboId)) {
       while (val == LOW) {
         val = digitalRead(start_PIN);
       }
