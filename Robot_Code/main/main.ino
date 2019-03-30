@@ -11,6 +11,7 @@
 #include "QSerial.h"
 QSerial myIRserial;
 //===========================
+QSerial IRSerial;
 
 //========PIN DEFINITIONS====
 //MOTORS
@@ -141,7 +142,6 @@ void setup() {
   */
   //=====================================================
 
-  int robotId = 1; //or 2 or 3. This number should be a return value from the detectBeacon Function
 
   //PINMODE SETUPS
   pinMode(R_Dir, OUTPUT);
@@ -167,7 +167,6 @@ void setup() {
   pinMode(M_IR, INPUT);
   pinMode(R_IR, INPUT);
 
-  pinMode(start_PIN, INPUT);
 
   /*
     pan.write(robot.Pan_Default_Position);
@@ -175,20 +174,28 @@ void setup() {
     grip.write(robot.Gripper_Start_Position);
   */
 
-
+  pinMode(start_PIN, INPUT);
+  IRSerial.attach(start_PIN, -1)
 
   //Starting Sequence vvvvvvv
+  int robotId = 1; //or 2 or 3. This number should be a return value from the detectBeacon Function
+
 
   int val = digitalRead(start_PIN);
-  while ( val == HIGH) {
+  while (val == HIGH) {
     val = digitalRead(start_PIN);
-    if (val == LOW) {
+    roboId = IRSerial.receive(200);
+    if (val == LOW  && validateIRIn(roboId) {
       while (val == LOW) {
         val = digitalRead(start_PIN);
       }
       break;
     }
   }
+}
+
+bool validateIRIn(char i){
+  return i=='1'||i=='2'||i=='3';
 }
 
 void loop() {
@@ -595,7 +602,7 @@ void grab(Robot R) {
 
   //do 180
   turn(R, 0, true);
- 
+
   //stahp
   stop(R);
 }
