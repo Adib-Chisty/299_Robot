@@ -167,7 +167,7 @@ void setup() {
   //=====================================================
 
   Serial.println("Valid Character Detected");
-  digitalWrite(LED_PIN,HIGH); 
+  digitalWrite(LED_PIN,HIGH);
 
   int read_ = 1;
   bool pressed = false;
@@ -194,6 +194,8 @@ void setup() {
 
 //MAIN STUFF
 void loop() {
+  celebrate();
+
 int counter = 0;
 for(int i = 0;i<15;i+=3){
 
@@ -653,4 +655,28 @@ void identifyRobot(int roboId) {
   }
 }
 
+
+void celebrate(){
+  tilt.write(180);
+  digitalWrite(L_Dir, HIGH); //Set left motor direction to forward
+  digitalWrite(R_Dir, LOW); //Set right motor direction to forward
+  analogWrite(L_Speed, 120);
+  analogWrite(R_Speed, 120);
+
+  int asdf = 1;
+  bool switcher = true;
+  int gripSize = 40;
+  while(true){
+    digitalWrite(LED_PIN, switcher);
+    switcher = !switcher;
+
+    if(asdf>160 || asdf<50){
+      asdf *=-5;
+    }
+
+   grip.write(gripSize);
+   gripSize+=asdf;
+
+  }
+}
 //===========================
