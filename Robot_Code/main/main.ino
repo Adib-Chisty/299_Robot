@@ -77,6 +77,12 @@ int IRVal = 0;
 //timer thing
 unsigned long lastInter = 0;
 
+//path arrays
+int roboId; //or 2 or 3. This number should be a return value from the detectBeacon Function
+int possiblePaths [3][15] = {
+  {0,3,3, 4,4,1, 0,1,3, 0,2,3, 0,4,0},
+  {4,0,1, 0,0,3, 1,4,0, 2,4,0, 3,4,0},
+  {0,4,3, 4,3,1, 4,4,0, 4,1,1, 4,2,1}};
 
 //===========================
 
@@ -175,28 +181,54 @@ void setup() {
   */
 
   pinMode(start_PIN, INPUT);
-  IRSerial.attach(start_PIN, -1)
+  IRSerial.attach(start_PIN, -1);
 
   //Starting Sequence vvvvvvv
-  int robotId = 1; //or 2 or 3. This number should be a return value from the detectBeacon Function
-
 
   int val = digitalRead(start_PIN);
   while (val == HIGH) {
     val = digitalRead(start_PIN);
     roboId = IRSerial.receive(200);
-    if (val == LOW  && validateIRIn(roboId) {
+    if (val == LOW  && validateIRIn(roboId)) {
       while (val == LOW) {
         val = digitalRead(start_PIN);
       }
       break;
     }
   }
+
+  roboId -= 48;
+  identifyRobot(roboId);
+
 }
 
-bool validateIRIn(char i){
-  return i=='1'||i=='2'||i=='3';
+void identifyRobot(int roboId){
+  switch (roboId) {
+    case 0:
+    cx = 1;
+    cy = -1;
+    homeX = 1;
+    homeY = -1;
+    break;
+    case 1:
+    cx = 2;
+    cy = -1;
+    homeX = 2;
+    homeY = -1;
+    break;
+    case 2:
+    cx = 3;
+    cy = -1;
+    homeX = 3;
+    homeY = -1;
+    break;
+    default:
+    Serial.print("robotId was a bad value");
+    exit(0);
+    break;
+  }
 }
+
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -254,8 +286,6 @@ void loop() {
 
   exit(0);
 }
-
-
 //=====MOVEMENT FUNCTIONS====
 
 void goToCoord(Robot R, int x, int y, int d) { //x,y is destination coord, d is the cardinality of the ball
@@ -302,6 +332,23 @@ void goToCoord(Robot R, int x, int y, int d) { //x,y is destination coord, d is 
     }
   }
 
+  if (cx != x) {
+    if (cx < x) {
+      forward(R, (x - cx));
+      cx = x;
+      turn(R, 0, false); //turn right
+    }
+    else if (cx > x) {
+      forward(R, (cx - x));
+      cx = x;
+      turn(R, 1, false); //turn left
+    }
+
+  }
+  if (cy != y) {
+    forward(R, (cy - y));
+    cy = y;
+  }
 }
 
 void RTB(Robot R, int home_) {
@@ -645,5 +692,12 @@ void drop(Robot R) {
 //===========================
 
 //=====HELPER FUNCTIONS======
+
+//used when reading IRSerial to identiy robot
+bool validateIRIn(char i){
+  return i=='1'||i=='2'||i=='3';
+}
+
+
 
 //===========================
