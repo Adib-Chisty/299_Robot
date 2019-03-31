@@ -164,10 +164,16 @@ void setup() {
     Serial.print("\n");
   } while (validateIRIn(roboId));
 
+  roboId -= 48;
+  identifyRobot(roboId);
+  Serial.print("ID Number:");
+  Serial.print(roboId);
+  Serial.print("\n");
   //=====================================================
 
   Serial.println("Valid Character Detected");
-  digitalWrite(LED_PIN,HIGH);
+  //flash led
+  flash(roboId);
 
   int read_ = 1;
   bool pressed = false;
@@ -184,35 +190,29 @@ void setup() {
   }
 
 
-  roboId -= 48;
-  identifyRobot(roboId);
-  Serial.print("ID Number:");
-  Serial.print(roboId);
-  Serial.print("\n");
-
 }
 
 //MAIN STUFF
 void loop() {
+
+  int counter = 0;
+  for (int i = 0; i < 15; i += 3) {
+
+    goToCoord(robot, paths[roboId][i], paths[roboId][i + 1], paths[roboId][i + 2]);
+    approachWall(robot, false);
+    grab(robot);
+    RTB(robot, homeX);
+    approachWall(robot, true);
+    drop(robot);
+
+    counter++;
+    Serial.print("Got a Dice:");
+    Serial.print(counter);
+    Serial.print("/5\n");
+  }
+  Serial.println("ROUTE COMPLETE.");
   celebrate();
-
-int counter = 0;
-for(int i = 0;i<15;i+=3){
-
-  goToCoord(robot,paths[roboId][i],paths[roboId][i+1],paths[roboId][i+2]);
-  approachWall(robot,false);
-  grab(robot);
-  RTB(robot,homeX);
-  approachWall(robot,true);
-  drop(robot);
-
-  counter++;
-  Serial.print("Got a Dice:");
-  Serial.print(counter);
-  Serial.print("/5\n");
-}
-Serial.println("ROUTE COMPLETE.");
-exit(0);
+  exit(0);
 }
 
 
@@ -656,7 +656,7 @@ void identifyRobot(int roboId) {
 }
 
 
-void celebrate(){
+void celebrate() {
   tilt.write(180);
   digitalWrite(L_Dir, HIGH); //Set left motor direction to forward
   digitalWrite(R_Dir, LOW); //Set right motor direction to forward
@@ -668,27 +668,38 @@ void celebrate(){
   bool switcher = true;
   int gripSize = 40;
   int tiltSize = 70;
-  while(true){
+  while (true) {
     digitalWrite(LED_PIN, switcher);
     switcher = !switcher;
 
-    if(gripSize>160 || gripSize<50){
-      asdf *=-1;
+    if (gripSize > 160 || gripSize < 50) {
+      asdf *= -1;
     }
 
-    if(tiltSize>150 || tiltSize<80){
-      asdfg*=-1;
+    if (tiltSize > 150 || tiltSize < 80) {
+      asdfg *= -1;
     }
 
     tilt.write(tiltSize);
-    tiltSize+=asdfg;
+    tiltSize += asdfg;
     delay(500);
 
-   grip.write(gripSize);
-   gripSize+=asdf;
+    grip.write(gripSize);
+    gripSize += asdf;
 
-   delay(500);
+    delay(500);
 
   }
+
+}
+
+void flash(int ID) {
+  for (int i = 0; i < ID; i++) {
+    digitalWrite(LED_PIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_PIN, LOW);
+    delay(1000);
+  }
+  digitalWrite(LED_PIN, HIGH);
 }
 //===========================
