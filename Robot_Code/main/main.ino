@@ -198,7 +198,7 @@ void setup() {
   }
 
   roboId -= 48;
-  identifyRobot(roboId)
+  identifyRobot(roboId);
 
 }
 
