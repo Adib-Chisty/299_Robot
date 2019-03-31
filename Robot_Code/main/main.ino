@@ -43,6 +43,7 @@ Servo pan, tilt, grip;
 //MISC
 int beacon_PIN = 11;
 int button_PIN = A2;
+int LED_PIN = 13;
 /*
   #define rxpin 4      IDK what this is for
   #define txpin -1
@@ -79,7 +80,7 @@ unsigned long lastInter = 0;
 
 //path arrays
 int roboId; //or 2 or 3. This number should be a return value from the detectBeacon Function
-int possiblePaths [3][15] = {
+int paths[3][15] = {
   {0, 3, 3, 4, 4, 1, 0, 1, 3, 0, 2, 3, 0, 4, 0},
   {4, 0, 1, 0, 0, 3, 1, 4, 0, 2, 4, 0, 3, 4, 0},
   {0, 4, 3, 4, 3, 1, 4, 4, 0, 4, 1, 1, 4, 2, 1}
@@ -150,6 +151,8 @@ void setup() {
   pinMode(L_IR, INPUT);
   pinMode(M_IR, INPUT);
   pinMode(R_IR, INPUT);
+
+  pinMode(LED_PIN, OUTPUT);
   //=================== IR BEACON detection goes here
 
   IRSerial.attach(beacon_PIN, -1);
@@ -164,6 +167,7 @@ void setup() {
   //=====================================================
 
   Serial.println("Valid Character Detected");
+  digitalWrite(LED_PIN,HIGH); 
 
   int read_ = 1;
   bool pressed = false;
@@ -188,64 +192,28 @@ void setup() {
 
 }
 
-
-
+//MAIN STUFF
 void loop() {
-  // put your main code here, to run repeatedly:
+int counter = 0;
+for(int i = 0;i<15;i+=3){
 
-  /*
-    //snake n back
-    forward(robot, 1);
-    turn(robot, 1,false);
-    forward(robot, 2);
-    turn(robot, 0,false);
-    forward(robot, 1);
-    turn(robot, 0,false);
-    forward(robot, 2);
-    turn(robot, 1,false);
-    forward(robot, 1);
-    turn(robot, 1,false);
-    forward(robot, 2);
-    turn(robot, 0,false);
-    forward(robot, 1);
-    turn(robot,  0,false);
-    forward(robot, 2);
-    turn(robot,  0,false);
-    forward(robot,4);
-    exit(0);
-  */
+  goToCoord(robot,paths[roboId][i],paths[roboId][i+1],paths[roboId][i+2]);
+  approachWall(robot,false);
+  grab(robot);
+  RTB(robot,homeX);
+  approachWall(robot,true);
+  drop(robot);
 
-  //circuit
-  //    forward(robot, 2);
-  //    turn(robot, 1,false);
-
-
-
-  /* 180 tester
-    Serial.println("Robot Current Direction");
-    Serial.println(cd);
-    forward(robot, 2);
-    turn(robot, 0, true);
-  */
-  // cx = 1;
-  // cy = -1;
-  // homeX = 1;
-  // homeY = -1;
-  // goToCoord(robot, 4, 4, 1);
-  // approachWall(robot, false);
-  // grab(robot);
-  // RTB(robot, 1);
-  // approachWall(robot, true);
-  // drop(robot);
-  // goToCoord(robot, 2, 4, 0);
-  // approachWall(robot, false);
-  // grab(robot);
-  // RTB(robot, 1);
-  // approachWall(robot, true);
-  // drop(robot);
-
-
+  counter++;
+  Serial.print("Got a Dice:");
+  Serial.print(counter);
+  Serial.print("/5\n");
 }
+Serial.println("ROUTE COMPLETE.");
+exit(0);
+}
+
+
 //=====MOVEMENT FUNCTIONS====
 
 void goToCoord(Robot R, int x, int y, int d) { //x,y is destination coord, d is the cardinality of the ball
@@ -655,7 +623,7 @@ void drop(Robot R) {
 
 //used when reading IRSerial to identiy robot
 bool validateIRIn(char i) {
-  return !(i == '1' || i == '2' || i == '3');
+  return !(i == '0' || i == '1' || i == '2');
 }
 
 void identifyRobot(int roboId) {
@@ -679,7 +647,7 @@ void identifyRobot(int roboId) {
       homeY = -1;
       break;
     default:
-      Serial.print("robotId was a bad value");
+      Serial.print("roboId was a bad value");
       exit(0);
       break;
   }
