@@ -80,9 +80,10 @@ unsigned long lastInter = 0;
 //path arrays
 int roboId; //or 2 or 3. This number should be a return value from the detectBeacon Function
 int possiblePaths [3][15] = {
-  {0,3,3, 4,4,1, 0,1,3, 0,2,3, 0,4,0},
-  {4,0,1, 0,0,3, 1,4,0, 2,4,0, 3,4,0},
-  {0,4,3, 4,3,1, 4,4,0, 4,1,1, 4,2,1}};
+  {0, 3, 3, 4, 4, 1, 0, 1, 3, 0, 2, 3, 0, 4, 0},
+  {4, 0, 1, 0, 0, 3, 1, 4, 0, 2, 4, 0, 3, 4, 0},
+  {0, 4, 3, 4, 3, 1, 4, 4, 0, 4, 1, 1, 4, 2, 1}
+};
 
 //===========================
 
@@ -126,29 +127,6 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
-
-
-  //=================== IR BEACON detection goes here
-  /*
-
-    if (Serial.available() == 1) {
-    Serial.write("ready");
-    char iByte = Serial.read();
-    Serial.println(iByte);
-    if (iByte == 'Y') {
-    int robotId = 1;
-    }
-    if (iByte == 'X') {
-    int robotId = 2;
-    }
-    if (iByte == 'Z') {
-    int robotId = 3;
-    }
-    }
-  */
-  //=====================================================
-
-
   //PINMODE SETUPS
   pinMode(R_Dir, OUTPUT);
   pinMode(L_Dir, OUTPUT);
@@ -172,77 +150,44 @@ void setup() {
   pinMode(L_IR, INPUT);
   pinMode(M_IR, INPUT);
   pinMode(R_IR, INPUT);
-
-
-  /*
-    pan.write(robot.Pan_Default_Position);
-    tilt.write(robot.Tilt_Up_Position);
-    grip.write(robot.Gripper_Start_Position);
-  */
+  //=================== IR BEACON detection goes here
 
   IRSerial.attach(beacon_PIN, -1);
 
-  do{
-      roboId = IRSerial.receive(200);
-  }while(validateIRIn(roboId));
-
-  byte read = 1;
-  while(read){
-    read = digitalRead(button_PIN);
-    while(!read){
-        //wait
-    }
-  }
-
-
-
- /*
-  int val = digitalRead(start_PIN);
-  while (val == HIGH) {
-    val = digitalRead(start_PIN);
+  do {
     roboId = IRSerial.receive(200);
-    if (val == LOW  && validateIRIn(roboId)) {
-      while (val == LOW) {
-        val = digitalRead(start_PIN);
-      }
+    Serial.print("Raw character:");
+    Serial.print(roboId);
+    Serial.print("\n");
+  } while (validateIRIn(roboId));
+
+  //=====================================================
+
+  Serial.println("Valid Character Detected");
+
+  int read_ = 1;
+  bool pressed = false;
+  while (true) {
+    read_ = digitalRead(button_PIN);
+    if (read_ == 0) {
+      Serial.println("Button Depressed");
+      pressed = true;
+    }
+    if (pressed == true && read_ == 1) {
+      Serial.println("Button Released");
       break;
     }
   }
-  */
-
 
 
   roboId -= 48;
   identifyRobot(roboId);
+  Serial.print("ID Number:");
+  Serial.print(roboId);
+  Serial.print("\n");
 
 }
 
-void identifyRobot(int roboId){
-  switch (roboId) {
-    case 0:
-    cx = 1;
-    cy = -1;
-    homeX = 1;
-    homeY = -1;
-    break;
-    case 1:
-    cx = 2;
-    cy = -1;
-    homeX = 2;
-    homeY = -1;
-    break;
-    case 2:
-    cx = 3;
-    cy = -1;
-    homeX = 3;
-    homeY = -1;
-    break;
-    default:
-    Serial.print("robotId was a bad value");
-    exit(0);
-    break;
-  }
-}
 
 
 void loop() {
@@ -282,24 +227,24 @@ void loop() {
     forward(robot, 2);
     turn(robot, 0, true);
   */
-  cx = 1;
-  cy = -1;
-  homeX = 1;
-  homeY = -1;
-  goToCoord(robot, 4, 4, 1);
-  approachWall(robot, false);
-  grab(robot);
-  RTB(robot, 1);
-  approachWall(robot, true);
-  drop(robot);
-  goToCoord(robot, 2, 4, 0);
-  approachWall(robot, false);
-  grab(robot);
-  RTB(robot, 1);
-  approachWall(robot, true);
-  drop(robot);
+  // cx = 1;
+  // cy = -1;
+  // homeX = 1;
+  // homeY = -1;
+  // goToCoord(robot, 4, 4, 1);
+  // approachWall(robot, false);
+  // grab(robot);
+  // RTB(robot, 1);
+  // approachWall(robot, true);
+  // drop(robot);
+  // goToCoord(robot, 2, 4, 0);
+  // approachWall(robot, false);
+  // grab(robot);
+  // RTB(robot, 1);
+  // approachWall(robot, true);
+  // drop(robot);
 
-  exit(0);
+
 }
 //=====MOVEMENT FUNCTIONS====
 
@@ -709,10 +654,35 @@ void drop(Robot R) {
 //=====HELPER FUNCTIONS======
 
 //used when reading IRSerial to identiy robot
-bool validateIRIn(char i){
-  return !(i=='1'||i=='2'||i=='3');
+bool validateIRIn(char i) {
+  return !(i == '1' || i == '2' || i == '3');
 }
 
-
+void identifyRobot(int roboId) {
+  switch (roboId) {
+    case 0:
+      cx = 1;
+      cy = -1;
+      homeX = 1;
+      homeY = -1;
+      break;
+    case 1:
+      cx = 2;
+      cy = -1;
+      homeX = 2;
+      homeY = -1;
+      break;
+    case 2:
+      cx = 3;
+      cy = -1;
+      homeX = 3;
+      homeY = -1;
+      break;
+    default:
+      Serial.print("robotId was a bad value");
+      exit(0);
+      break;
+  }
+}
 
 //===========================
