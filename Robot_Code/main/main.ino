@@ -41,8 +41,8 @@ int pressure_PIN = A0;
 Servo pan, tilt, grip;
 
 //MISC
-int start_PIN = 11;
-
+int beacon_PIN = 11;
+int button_PIN = A2;
 /*
   #define rxpin 4      IDK what this is for
   #define txpin -1
@@ -180,11 +180,23 @@ void setup() {
     grip.write(robot.Gripper_Start_Position);
   */
 
-  pinMode(start_PIN, INPUT);
-  IRSerial.attach(start_PIN, -1);
+  IRSerial.attach(beacon_PIN, -1);
 
-  //Starting Sequence vvvvvvv
+  do{
+      roboId = IRSerial.receive(200);
+  }while(validateIRIn(roboId));
 
+  byte read = 1;
+  while(read){
+    read = digitalRead(button_PIN);
+    while(!read){
+        //wait
+    }
+  }
+
+
+
+ /*
   int val = digitalRead(start_PIN);
   while (val == HIGH) {
     val = digitalRead(start_PIN);
@@ -196,6 +208,9 @@ void setup() {
       break;
     }
   }
+  */
+
+
 
   roboId -= 48;
   identifyRobot(roboId);
@@ -695,7 +710,7 @@ void drop(Robot R) {
 
 //used when reading IRSerial to identiy robot
 bool validateIRIn(char i){
-  return i=='1'||i=='2'||i=='3';
+  return !(i=='1'||i=='2'||i=='3');
 }
 
 
