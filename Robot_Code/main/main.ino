@@ -78,6 +78,9 @@ int IRVal = 0;
 //timer thing
 unsigned long lastInter = 0;
 
+//sweep parameter
+int lastSide = 0; //0 meaning right, 1 meaning left
+
 //path arrays
 int roboId; //or 2 or 3. This number should be a return value from the detectBeacon Function
 int paths[3][15] = {
@@ -89,7 +92,8 @@ int paths[3][15] = {
 //===========================
 
 //========THRESHOLDS=========
-int thresh = 800;
+int thresh = 880;
+int fIRthresh = 350;
 //===========================
 
 //========CLASSES============ //
@@ -175,19 +179,21 @@ void setup() {
   //flash led
   flash(roboId);
 
-  int read_ = 1;
-  bool pressed = false;
-  while (true) {
-    read_ = digitalRead(button_PIN);
-    if (read_ == 0) {
-      Serial.println("Button Depressed");
-      pressed = true;
-    }
-    if (pressed == true && read_ == 1) {
-      Serial.println("Button Released");
-      break;
-    }
-  }
+//  int read_ = 1;
+//  bool pressed = false;
+//  while (true) {
+//    read_ = digitalRead(button_PIN);
+//    if (read_ == 0) {
+//      Serial.println("Button Depressed");
+//      pressed = true;
+//    }
+//    if (pressed == true && read_ == 1) {
+//      Serial.println("Button Released");
+//      break;
+//    }
+//  }
+
+  delay(2000);
 
 
 }
@@ -325,7 +331,7 @@ void forward(Robot R, int numOfIntersections) {
     mVal = analogRead(M_IR);
     rVal = analogRead(R_IR);
 
-    correctCourse(R); //correct leaning
+    correctCourse(R,false); //correct leaning
 
     //correctly detect intersections, prevents accidental detection of false intersection
     if ((lVal > thresh) && (mVal > thresh) && (rVal > thresh) ) { //At an intersection. Increment intersection counter
@@ -369,8 +375,8 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
   //Serial.println("Driving Past intersection");
 
   delay(50);
-  analogWrite(L_Speed, 130);
-  analogWrite(R_Speed, 105);
+  analogWrite(L_Speed, 120);
+  analogWrite(R_Speed, 130);
   digitalWrite(L_Dir, HIGH);
   digitalWrite(R_Dir, HIGH);
   delay(400);
@@ -379,54 +385,33 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
     if (dir == 1) { //Begin turning counter-clockwise to ensure that center line sensor is not scaning the black tape
       //Serial.println("Pre turning left");
       analogWrite(L_Speed, 120);
-      analogWrite(R_Speed, 105);
+      analogWrite(R_Speed, 130);
       digitalWrite(L_Dir, LOW);
       digitalWrite(R_Dir, HIGH);
-      delay(650);
-      //      delay(500);
+      delay(600);   //<-- PRE TURN LEFT DELAY
+      mVal = analogRead(L_IR);
+      pmVal = 0;
+      while(mVal < thresh && pmVal < thresh){
+        pmVal = mVal;
+        delay(50);
+        mVal = analogRead(L_IR);
+      }
     }
     else { //Begin turning clockwise to ensure that center line sensor is not scaning the black tape
       //Serial.println("Pre turning right");
-      analogWrite(L_Speed, 105);
+      analogWrite(L_Speed, 110);
       analogWrite(R_Speed, 120);
       digitalWrite(L_Dir, HIGH);
       digitalWrite(R_Dir, LOW);
-      delay(480); //<-- PRE TURN RIGHT DELAY
-
-    }
-
-    if (dir == 1) {
-      Val = analogRead(L_IR);
-    } else {
-      Val = analogRead(R_IR);
-    }
-
-    while (Val < thresh) { //Rotate in specified direction until the middle line sensor reads the black tape value
-
-      if (dir == 1) {
-        Val = analogRead(L_IR);
-      } else {
-        Val = analogRead(R_IR);
+      delay(450); //<-- PRE TURN RIGHT DELAY
+      mVal = analogRead(R_IR);
+      pmVal = 0;
+      while(mVal < thresh && pmVal < thresh){
+        pmVal = mVal;
+        delay(50);
+        mVal = analogRead(R_IR);
       }
-
-      //Serial.println("Middle IR:");
-      //Serial.println(Val);
-      analogWrite(L_Speed, 120);
-      analogWrite(R_Speed, 130);
-
-
-      if (dir == 1) {
-        //Serial.println("Turning Left");
-        digitalWrite(L_Dir, LOW);
-        digitalWrite(R_Dir, HIGH);
-      } else {
-        //Serial.println("Turning Right");
-        digitalWrite(L_Dir, HIGH);
-        digitalWrite(R_Dir, LOW);
-      }
-
     }
-
   }
   //Update current direction of the robot
 
@@ -463,10 +448,21 @@ void turn(Robot R, int dir, bool pi) { //pi means a 180
     }
 
   }
-  Serial.println("STOP");
-  //delay(50); //adjustment delay
 
+  Serial.println("STOP");
   stop(R);
+  delay(100);
+//  lVal = analogRead(L_IR);
+//  mVal = analogRead(M_IR);
+//  rVal = analogRead(R_IR);
+//  Serial.println(mVal);
+//  if(mVal < thresh){
+//    Serial.println("SWEEPING...");
+//    sweep(dir);
+//  }
+
+  
+
 }
 
 
@@ -479,7 +475,7 @@ void approachWall(Robot r, bool base) {
   r.L_MedMotorSpeed = r.L_MedMotorSpeed - 50;
   r.R_MedMotorSpeed = r.R_MedMotorSpeed - 50;
 
-  correctCourse(r);
+  correctCourse(r,true);
 
   while (!(lbump == LOW || rbump == LOW)) {
 
@@ -487,7 +483,7 @@ void approachWall(Robot r, bool base) {
     digitalWrite(R_Dir, HIGH);
     lbump = digitalRead(L_Bumper);
     rbump = digitalRead(R_Bumper);
-    correctCourse(r);
+    correctCourse(r,true);
   }
   r.L_MedMotorSpeed = r.L_MedMotorSpeed + 50;
   r.R_MedMotorSpeed = r.R_MedMotorSpeed + 50;
@@ -495,43 +491,74 @@ void approachWall(Robot r, bool base) {
   if (!base) {
     digitalWrite(L_Dir, LOW);
     digitalWrite(R_Dir, LOW);
-    analogWrite(L_Speed, r.L_MedMotorSpeed - 35);
-    analogWrite(R_Speed, r.R_MedMotorSpeed - 30);
-    delay(1000); //blazeit
+    analogWrite(L_Speed, r.L_MedMotorSpeed);
+    analogWrite(R_Speed, r.R_MedMotorSpeed);
+    delay(420 ); //blazeit
   }
   stop(r);
 
 }
 
-void correctCourse(Robot R) {
+void correctCourse(Robot R, bool wall) {
   lVal = analogRead(L_IR);
   mVal = analogRead(M_IR);
   rVal = analogRead(R_IR);
+  IRVal = analogRead(F_IR);
 
-  if ((lVal < thresh) && (mVal > thresh) && (rVal < thresh)) { //SET MOTORS TO DRIVE FORWARD
+  if((IRVal > fIRthresh) && (wall == false)){
+    analogWrite(L_Speed,0);
+    analogWrite(R_Speed,0);
+    
+  } else if ((lVal < thresh) && (mVal > thresh) && (rVal < thresh)) { //SET MOTORS TO DRIVE FORWARD
     //Serial.println("Driving Forward");
-    analogWrite(L_Speed, 110);
-    analogWrite(R_Speed, 100);
+    analogWrite(L_Speed, 130);
+    analogWrite(R_Speed, 140);
 
   } else if ((lVal > thresh) && (mVal < thresh) && (rVal < thresh)) { //LEANING INTO THE RIGHT...SPEED UP RIGHT MOTOR (CALIBRATE)
     //Serial.println("Leaning right, pulling left");
     //    analogWrite(L_Speed, 100);
     //    analogWrite(R_Speed, 120);
     analogWrite(L_Speed, 100);
-    analogWrite(R_Speed, 130);
+    analogWrite(R_Speed, 140);
   } else if ((lVal < thresh) && (mVal < thresh) && (rVal > thresh)) { //LEANING INTO THE LEFT...SPEED UP RIGHT MOTOR (CALIBRATE)
     //Serial.println("Leaning left, pulling right");
     //    analogWrite(L_Speed, 130);
     //    analogWrite(R_Speed, 100);
-    analogWrite(L_Speed, 140);
+    analogWrite(L_Speed, 130);
     analogWrite(R_Speed, 100);
   }
   else {
     //SET MOTORS TO DRIVE FORWARD
     //Serial.println("Driving Forward");
-    analogWrite(L_Speed, 110);
-    analogWrite(R_Speed, 100);
+    analogWrite(L_Speed, 130);
+    analogWrite(R_Speed, 140);
   }
+
+}
+
+void sweep(int lastSide){
+  if(lastSide == 0){
+    digitalWrite(L_Dir,LOW);
+    digitalWrite(R_Dir,HIGH);
+    analogWrite(L_Speed,120);
+    analogWrite(R_Speed,130);
+    mVal = analogRead(M_IR);
+    while (mVal < thresh) { //Continue rotating in specified direction until the center line sensor reads the black tape value
+      mVal = analogRead(M_IR);
+    }
+  }
+  else{
+    digitalWrite(L_Dir,HIGH);
+    digitalWrite(R_Dir,LOW);
+    analogWrite(L_Speed,120);
+    analogWrite(R_Speed,130);
+    mVal = analogRead(M_IR);
+    while (mVal < thresh) { //Continue rotating in specified direction until the center line sensor reads the black tape value
+      mVal = analogRead(M_IR);
+    }
+  }
+  stop(robot);
+  delay(50);
 }
 
 
@@ -571,11 +598,11 @@ void grab(Robot R) {
 
   //back up
   delay(50);
-  analogWrite(L_Speed, 110);
-  analogWrite(R_Speed, 120);
+  analogWrite(L_Speed, 130);
+  analogWrite(R_Speed, 130);
   digitalWrite(L_Dir, LOW);
   digitalWrite(R_Dir, LOW);
-  delay(800);
+  delay(900);
 
   //do 180
   turn(R, 0, true);
