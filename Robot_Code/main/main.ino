@@ -1,6 +1,3 @@
-
-
-
 /*Program describing behaviour of warehouse robot prototype
   Created by Adib Chisty on March 20, 2019
   For ELEC299
@@ -217,7 +214,6 @@ void loop() {
     Serial.print("/5\n");
   }
   Serial.println("ROUTE COMPLETE.");
-  celebrate();
   exit(0);
 }
 
@@ -590,7 +586,7 @@ void grab(Robot R) {
   while (analogRead(pressure_PIN) < 200) {
     grip.write(gripVal);
     gripVal += 1;
-    if (gripVal > 150) { gripVal = 0; }
+    if (gripVal > 120) { gripVal = 0; }
     delay(25);
   }
   
@@ -604,7 +600,7 @@ void grab(Robot R) {
   analogWrite(R_Speed, 130);
   digitalWrite(L_Dir, LOW);
   digitalWrite(R_Dir, LOW);
-  delay(900);
+  delay(800); //was 900
 
   //do 180
   turn(R, 0, true);
@@ -684,43 +680,6 @@ void identifyRobot(int roboId) {
   }
 }
 
-
-void celebrate() {
-  tilt.write(180);
-  digitalWrite(L_Dir, HIGH); //Set left motor direction to forward
-  digitalWrite(R_Dir, LOW); //Set right motor direction to forward
-  analogWrite(L_Speed, 120);
-  analogWrite(R_Speed, 120);
-
-  int asdf = 4;
-  int asdfg = 4;
-  bool switcher = true;
-  int gripSize = 40;
-  int tiltSize = 70;
-  while (true) {
-    digitalWrite(LED_PIN, switcher);
-    switcher = !switcher;
-
-    if (gripSize > 160 || gripSize < 50) {
-      asdf *= -1;
-    }
-
-    if (tiltSize > 150 || tiltSize < 80) {
-      asdfg *= -1;
-    }
-
-    tilt.write(tiltSize);
-    tiltSize += asdfg;
-    delay(500);
-
-    grip.write(gripSize);
-    gripSize += asdf;
-
-    delay(500);
-
-  }
-
-}
 
 void flash(int ID) {
   for (int i = 0; i < ID; i++) {
