@@ -93,7 +93,7 @@ int paths[3][15] = {
 
 //========THRESHOLDS=========
 int thresh = 880;
-int fIRthresh = 350;
+int fIRthresh = 250;
 //===========================
 
 //========CLASSES============ //
@@ -582,16 +582,18 @@ void grab(Robot R) {
   while (tiltVal >= 65) {
     tilt.write(tiltVal);
     tiltVal -= 1;
-    delay(25);
+    delay(10);
   }
 
   //grab it forreal
-  int fullyOpen = 0;
+  int gripVal = 0;
   while (analogRead(pressure_PIN) < 200) {
-    grip.write(fullyOpen);
-    fullyOpen += 1;
+    grip.write(gripVal);
+    gripVal += 1;
+    if (gripVal > 150) { gripVal = 0; }
     delay(25);
   }
+  
   //put ball back up
   tilt.write(180);
   delay(1000);
